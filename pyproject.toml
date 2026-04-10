@@ -7,7 +7,6 @@ name = "rag-ai-anget-chat-bot"
 version = "0.1.0"
 description = "RAG chatbot with FAISS retrieval and local Ollama generation"
 readme = "README.md"
-license = { text = "MIT" }
 authors = [{ name = "RAG AI Chatbot Team" }]
 requires-python = ">=3.12"
 dependencies = [

@@ -186,10 +186,6 @@ pre-commit install
 3. Make your changes
 4. Submit a pull request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Future Enhancements
 
 - Streaming responses in the Streamlit UI

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rag-ai-anget-chat-bot"
+version = "0.1.0"
+description = "RAG chatbot with FAISS retrieval and local Ollama generation"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "RAG AI Chatbot Team" }]
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb==1.5.5",
+    "faiss-cpu>=1.13.2",
+    "ipykernel>=7.2.0",
+    "langchain==1.2.14",
+    "langchain-community==0.4.1",
+    "langchain-core==1.2.25",
+    "langchain-huggingface==1.2.1",
+    "langchain-mistralai==1.1.2",
+    "langchain-ollama>=1.1.0",
+    "langchain-openai==1.1.12",
+    "langchain-text-splitters==1.1.1",
+    "mistralai>=2.3.1",
+    "python-dotenv==1.1.0",
+    "pymupdf==1.27.2.2",
+    "pypdf==6.9.2",
+    "sentence-transformers==2.7.0",
+    "streamlit==1.44.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5",
+    "pytest-cov==6.1.1",
+    "ruff==0.11.9",
+    "mypy==1.15.0",
+    "types-requests==2.32.0.20250328",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --disable-warnings --maxfail=1"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

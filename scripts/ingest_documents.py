@@ -5,6 +5,8 @@ from typing import Any, List
 import fitz
 from langchain_core.documents import Document
 
+from src.rag.chunking import sentence_chunk_documents
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
@@ -53,15 +55,8 @@ def load_pdf_documents(data_dir: Path) -> List[Document]:
 def sentence_aware_chunk_documents(
     documents: List[Document], chunk_size: int = 1000, chunk_overlap: int = 200
 ) -> List[Document]:
-    """Chunk documents with a sentence-aware splitting strategy."""
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", ". ", "! ", "? ", ", ", " "],
-    )
-    return splitter.split_documents(documents)
+    """Chunk documents by sentence boundaries with overlap-aware packing."""
+    return sentence_chunk_documents(documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
 
 def create_vector_store(chunks: List[Document]) -> Any:

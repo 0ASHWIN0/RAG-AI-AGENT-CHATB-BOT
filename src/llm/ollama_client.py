@@ -1,6 +1,5 @@
+from collections.abc import Iterator
 from typing import Any
-
-from langchain_ollama import ChatOllama
 
 from src.core.config import load_config
 
@@ -8,8 +7,10 @@ CONFIG = load_config()
 OLLAMA_MODEL = CONFIG.ollama_model
 
 
-def load_ollama_client() -> ChatOllama:
+def load_ollama_client() -> Any:
     try:
+        from langchain_ollama import ChatOllama
+
         return ChatOllama(
             model=OLLAMA_MODEL,
             temperature=0,
@@ -39,6 +40,13 @@ def extract_text_from_response(res: Any) -> str:
     return str(content if content is not None else res)
 
 
-def complete_with_ollama(ollama_client: ChatOllama, prompt: str) -> str:
+def complete_with_ollama(ollama_client: Any, prompt: str) -> str:
     res = ollama_client.invoke(prompt)
     return extract_text_from_response(res)
+
+
+def stream_with_ollama(ollama_client: Any, prompt: str) -> Iterator[str]:
+    for chunk in ollama_client.stream(prompt):
+        text = extract_text_from_response(chunk)
+        if text:
+            yield text

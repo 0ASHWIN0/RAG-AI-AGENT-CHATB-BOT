@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,24 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from src.core.config import load_config
 
 CONFIG = load_config()
+TOKEN_PATTERN = re.compile(r"\b[a-zA-Z0-9]{3,}\b")
+
+
+def _tokenize(text: str) -> set[str]:
+    return set(TOKEN_PATTERN.findall((text or "").lower()))
+
+
+def _lexical_overlap(query: str, content: str) -> float:
+    query_tokens = _tokenize(query)
+    if not query_tokens:
+        return 0.0
+
+    content_tokens = _tokenize(content)
+    if not content_tokens:
+        return 0.0
+
+    # Query-centric overlap keeps reranking stable for short factual questions.
+    return len(query_tokens & content_tokens) / len(query_tokens)
 
 
 class RagRetriever:
@@ -14,22 +33,34 @@ class RagRetriever:
 
     def __init__(self, vector_store: FAISS):
         self.vector_store = vector_store
+        self.candidate_multiplier = 3
+        self.semantic_weight = 0.8
 
     def retrieve(self, query: str, top_k: int = 5, score_threshold: float = 0.0) -> list[dict[str, Any]]:
-        results_with_scores = self.vector_store.similarity_search_with_score(query, k=top_k)
+        candidate_k = max(top_k, top_k * self.candidate_multiplier)
+        results_with_scores = self.vector_store.similarity_search_with_score(query, k=candidate_k)
 
         retrieved = []
         for doc, score in results_with_scores:
-            similarity = 1 / (1 + score)
-            if similarity >= score_threshold:
+            semantic_similarity = 1 / (1 + score)
+            lexical_similarity = _lexical_overlap(query, doc.page_content)
+            grounded_score = (
+                self.semantic_weight * semantic_similarity
+                + (1 - self.semantic_weight) * lexical_similarity
+            )
+            if grounded_score >= score_threshold:
                 retrieved.append(
                     {
                         "content": doc.page_content,
                         "metadata": doc.metadata,
-                        "score": round(similarity, 4),
+                        "score": round(grounded_score, 4),
+                        "semantic_score": round(semantic_similarity, 4),
+                        "lexical_score": round(lexical_similarity, 4),
                     }
                 )
-        return retrieved
+
+        retrieved.sort(key=lambda item: item.get("score", 0.0), reverse=True)
+        return retrieved[:top_k]
 
 
 def get_embeddings() -> HuggingFaceEmbeddings:

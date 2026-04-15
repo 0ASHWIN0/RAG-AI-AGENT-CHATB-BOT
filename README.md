@@ -5,10 +5,10 @@ A Retrieval-Augmented Generation (RAG) AI chatbot built with Python, LangChain, 
 ## Features
 
 - **Document Ingestion**: Load and parse PDF files from a specified directory using PyMuPDF
-- **Text Chunking**: Split documents into manageable chunks with configurable size and overlap
+- **Text Cleanup and Chunking**: Clean common PDF noise and split content into sentence-friendly chunks
 - **Vector Search**: FAISS-backed retrieval pipeline for similarity search over chunked documents
 - **Local Generation (Ollama)**: Answer generation using a local Ollama model
-- **Streamlit Chat UI**: Browser-based chatbot interface with source display
+- **Streaming Streamlit Chat UI**: Browser-based chatbot interface with incremental answer rendering and source display
 - **Modular Design**: Clean separation of retriever, generator, pipeline, notebooks, and app layer
 - **Virtual Environment**: Isolated Python environment with uv package management
 
@@ -41,8 +41,12 @@ A Retrieval-Augmented Generation (RAG) AI chatbot built with Python, LangChain, 
 
 ### Data Processing
 1. Place your PDF documents in the `data` directory (create it if it doesn't exist)
-2. Open `notebooks/document.ipynb` in VS Code
-3. Run the cells in order:
+2. For notebook-based ingestion, open `notebooks/document.ipynb` in VS Code
+3. For a reusable ingestion pipeline with header/footer cleanup and sentence-aware chunking, run:
+   ```bash
+   python scripts/ingest_documents.py
+   ```
+4. If using the notebook, run the cells in order:
    - Load PDF documents from the data directory
    - Create chunks from the loaded documents
    - Build and save the FAISS vector database
@@ -136,6 +140,7 @@ rag-ai-anget-chat-bot/
 - `python-dotenv`: Environment variable loading
 - `pypdf`: PDF processing
 - `pymupdf`: Alternative PDF loader
+- `python-magic-bin`: File type detection on Windows
 - `uv`: Fast Python package manager
 
 ## Development
@@ -156,6 +161,9 @@ ruff format .
 pytest
 python scripts/rag_sanity_check.py
 ```
+
+### Test Coverage
+The automated tests are focused unit tests around configuration, prompt building, answer cleanup, and request preparation. Notebook execution, PDF ingestion against real documents, and full Streamlit UI behavior still rely mostly on manual verification.
 
 ### Continuous Integration
 Pull requests and pushes to the main branch run automated Ruff and pytest checks via [CI workflow](.github/workflows/ci.yml).
@@ -188,7 +196,6 @@ pre-commit install
 
 ## Future Enhancements
 
-- Streaming responses in the Streamlit UI
 - Better source citations and answer formatting
 - Multi-format document support
 - Advanced chunking and reranking strategies

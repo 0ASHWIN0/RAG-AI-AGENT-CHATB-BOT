@@ -23,6 +23,7 @@ dependencies = [
     "langchain-text-splitters==1.1.1",
     "mistralai>=2.3.1",
     "python-dotenv==1.1.0",
+    "python-magic-bin==0.4.28",
     "pymupdf==1.27.2.2",
     "pypdf==6.9.2",
     "sentence-transformers==2.7.0",

@@ -12,6 +12,7 @@ def test_build_rag_prompt_contains_expected_sections() -> None:
     assert "CONTEXT" in prompt
     assert "FINAL ANSWER" in prompt
     assert "What is RAG?" in prompt
+    assert "[Chunk N]" in prompt
 
 
 def test_build_rag_prompt_includes_fallback_rule() -> None:
@@ -19,3 +20,10 @@ def test_build_rag_prompt_includes_fallback_rule() -> None:
     prompt = build_rag_prompt("Q", "C", fallback)
 
     assert fallback in prompt
+
+
+def test_build_rag_prompt_requires_grounded_citations() -> None:
+    prompt = build_rag_prompt("Q", "C", "fallback")
+
+    assert "For each factual claim" in prompt
+    assert "Never cite chunks that are not present" in prompt

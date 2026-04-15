@@ -10,6 +10,17 @@ CONFIG = load_config()
 FALLBACK_ANSWER = CONFIG.fallback_answer
 
 
+def build_sources(retrieved_docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "source": (item.get("metadata") or {}).get("source", "unknown"),
+            "page": (item.get("metadata") or {}).get("page", "NA"),
+            "score": item.get("score", "NA"),
+        }
+        for item in retrieved_docs
+    ]
+
+
 def clean_answer_text(answer_text: str) -> str:
     if not answer_text:
         return FALLBACK_ANSWER
@@ -46,14 +57,44 @@ def format_context(retrieved_docs: list[dict[str, Any]]) -> str:
     for idx, item in enumerate(retrieved_docs, 1):
         metadata = item.get("metadata", {}) or {}
         text = (item.get("content", "") or "")[: CONFIG.rag_context_chars]
+        text = re.sub(r"\s+", " ", text).strip()
         blocks.append(
             f"[Chunk {idx}]\n"
             f"Source: {metadata.get('source', 'unknown')}\n"
             f"Page: {metadata.get('page', 'NA')}\n"
-            f"Score: {item.get('score', 'NA')}\n"
-            f"Text: {text}\n"
+            f"Grounded Score: {item.get('score', 'NA')}\n"
+            f"Semantic Score: {item.get('semantic_score', 'NA')}\n"
+            f"Lexical Score: {item.get('lexical_score', 'NA')}\n"
+            f"Content: {text}\n"
         )
     return "\n".join(blocks)
+
+
+def prepare_rag_request(
+    query: str,
+    retriever: RagRetriever,
+    top_k: int = 4,
+    score_threshold: float = 0.25,
+) -> dict[str, Any]:
+    retrieved_docs = retriever.retrieve(query=query, top_k=top_k, score_threshold=score_threshold)
+
+    if not retrieved_docs:
+        return {
+            "answer": FALLBACK_ANSWER,
+            "prompt": None,
+            "sources": [],
+            "retrieved_count": 0,
+        }
+
+    context_text = format_context(retrieved_docs)
+    prompt = build_rag_prompt(query, context_text, FALLBACK_ANSWER)
+
+    return {
+        "answer": None,
+        "prompt": prompt,
+        "sources": build_sources(retrieved_docs),
+        "retrieved_count": len(retrieved_docs),
+    }
 
 
 def ask_rag(
@@ -63,30 +104,24 @@ def ask_rag(
     top_k: int = 4,
     score_threshold: float = 0.25,
 ) -> dict[str, Any]:
-    retrieved_docs = retriever.retrieve(query=query, top_k=top_k, score_threshold=score_threshold)
-
-    if not retrieved_docs:
+    request = prepare_rag_request(
+        query=query,
+        retriever=retriever,
+        top_k=top_k,
+        score_threshold=score_threshold,
+    )
+    if request["prompt"] is None:
         return {
-            "answer": FALLBACK_ANSWER,
-            "sources": [],
-            "retrieved_count": 0,
+            "answer": request["answer"],
+            "sources": request["sources"],
+            "retrieved_count": request["retrieved_count"],
         }
 
-    context_text = format_context(retrieved_docs)
-    prompt = build_rag_prompt(query, context_text, FALLBACK_ANSWER)
-    raw_answer = complete_with_ollama(mistral_client, prompt)
+    raw_answer = complete_with_ollama(mistral_client, request["prompt"])
     answer_text = clean_answer_text(raw_answer)
-    sources = [
-        {
-            "source": (item.get("metadata") or {}).get("source", "unknown"),
-            "page": (item.get("metadata") or {}).get("page", "NA"),
-            "score": item.get("score", "NA"),
-        }
-        for item in retrieved_docs
-    ]
 
     return {
         "answer": answer_text,
-        "sources": sources,
-        "retrieved_count": len(retrieved_docs),
+        "sources": request["sources"],
+        "retrieved_count": request["retrieved_count"],
     }
